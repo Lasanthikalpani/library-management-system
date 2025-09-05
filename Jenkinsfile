@@ -1,13 +1,14 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKERHUB_CREDENTIALS = credentials('lib_dockerhub')
-        DOCKERHUB_USERNAME = "lasanthi821"
-        BOOK_IMAGE_NAME = "library-book-service"
-        MEMBER_IMAGE_NAME = "library-member-service"
-        IMAGE_TAG = "latest"
-    }
+    // environment section is commented out
+    // environment {
+    //     DOCKERHUB_CREDENTIALS = credentials('lib_dockerhub')
+    //     DOCKERHUB_USERNAME = "lasanthi821"
+    //     BOOK_IMAGE_NAME = "library-book-service"
+    //     MEMBER_IMAGE_NAME = "library-member-service"
+    //     IMAGE_TAG = "latest"
+    // }
 
     stages {
         stage('Checkout Git') {
@@ -19,7 +20,6 @@ pipeline {
         stage('Build Book Service') {
             steps {
                 dir('book-service') {
-                    // Use 'bat' for Windows instead of 'sh'
                     bat 'mvn clean package -DskipTests'
                 }
             }
@@ -28,7 +28,6 @@ pipeline {
         stage('Build Member Service') {
             steps {
                 dir('member-service') {
-                    // Use 'bat' for Windows instead of 'sh'
                     bat 'mvn clean package -DskipTests'
                 }
             }
@@ -37,8 +36,8 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    docker.build("${DOCKERHUB_USERNAME}/${BOOK_IMAGE_NAME}:${IMAGE_TAG}", "./book-service")
-                    docker.build("${DOCKERHUB_USERNAME}/${MEMBER_IMAGE_NAME}:${IMAGE_TAG}", "./member-service")
+                    docker.build("lasanthi821/library-book-service:latest", "./book-service")
+                    docker.build("lasanthi821/library-member-service:latest", "./member-service")
                 }
             }
         }
@@ -46,9 +45,23 @@ pipeline {
         stage('Push Images to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', DOCKERHUB_CREDENTIALS) {
-                        docker.image("${DOCKERHUB_USERNAME}/${BOOK_IMAGE_NAME}:${IMAGE_TAG}").push()
-                        docker.image("${DOCKERHUB_USERNAME}/${MEMBER_IMAGE_NAME}:${IMAGE_TAG}").push()
+                    // Use withCredentials to bind the Docker Hub credentials directly
+                    withCredentials([usernamePassword(
+                        credentialsId: 'lib_dockerhub', 
+                        usernameVariable: 'DOCKER_USER', 
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        // Log in to Docker Hub using the bound credentials
+                        bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                        
+                        // Push the Book Service image
+                        bat "docker push lasanthi821/library-book-service:latest"
+                        
+                        // Push the Member Service image
+                        bat "docker push lasanthi821/library-member-service:latest"
+                        
+                        // Log out from Docker Hub
+                        bat "docker logout"
                     }
                 }
             }
