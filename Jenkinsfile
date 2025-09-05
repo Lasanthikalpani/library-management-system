@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('library-management-dockerhub')
+        DOCKERHUB_CREDENTIALS = credentials('lib_dockerhub')
         DOCKERHUB_USERNAME = "lasanthi821"
         BOOK_IMAGE_NAME = "library-book-service"
         MEMBER_IMAGE_NAME = "library-member-service"
